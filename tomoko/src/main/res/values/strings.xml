@@ -1,0 +1,39 @@
+<!--
+  ~ Copyright (c) 2018 CELLA
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<resources>
+    <string name="app_name">Tomoko</string>
+    <string name="process_keep_alive">进程保活</string>
+    <string name="os_reboot">重启系统</string>
+
+    <string name="update_failed">升级失败: %s</string>
+    <string name="update_unnecessary">最新版本号为: %d, 不需要升级</string>
+    <string name="received_push">收到推送</string>
+
+    <string name="event_push_state_starting">正在启动推送服务</string>
+    <string name="event_push_state_start_success">推送服务启动成功</string>
+    <string name="event_push_state_start_failure">推送服务启动失败</string>
+
+    <string name="event_update_state_downloading">正在下载APK</string>
+    <string name="event_update_state_download_success">下载APK成功</string>
+    <string name="event_update_state_download_failed">下载APK失败</string>
+    <string name="event_update_state_uninstalling">正在卸载应用</string>
+    <string name="event_update_state_uninstall_success">卸载应用成功</string>
+    <string name="event_update_state_uninstall_failed">卸载应用失败</string>
+    <string name="event_update_state_installing">正在安装应用</string>
+    <string name="event_update_state_install_success">安装应用成功</string>
+    <string name="event_update_state_install_failed">安装应用失败</string>
+    <string name="event_update_state_app_staring">正在启动应用</string>
+</resources>
