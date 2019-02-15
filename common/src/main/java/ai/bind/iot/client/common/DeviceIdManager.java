@@ -20,11 +20,12 @@ import android.content.SharedPreferences;
 import android.os.Environment;
 import android.text.TextUtils;
 
-import java.io.File;
-
-import ai.bind.iot.client.common.util.OSUtils;
-import ai.bind.iot.client.common.util.PropertiesManager;
 import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.util.OsUtils;
+import ai.bind.iot.client.common.util.PropertiesManager;
+
+import java.io.File;
 
 /**
  * Created by w5e.
@@ -33,26 +34,30 @@ public final class DeviceIdManager {
     private static final String KEY_DEVICE_ID = "KEY_DEVICE_ID";
     private static final String KEY_SERIAL_NO = "KEY_SERIAL_NO";
     private static final String SPS_NAME_CELLA = "ai_bind_iot_client";
-    private File deviceFile = new File(Environment.getExternalStorageDirectory(), ".CELLA/device");
-    private PropertiesManager propertiesManager = new PropertiesManager(deviceFile);
+    private File mDeviceFile = new File(
+            Environment.getExternalStorageDirectory(), ".CELLA/device");
+    private PropertiesManager mPropertiesManager = new PropertiesManager(mDeviceFile);
 
     public void setDeviceId(@NonNull Context context, @NonNull String deviceId) {
         SharedPreferences sps = context.getSharedPreferences(SPS_NAME_CELLA, Context.MODE_PRIVATE);
         sps.edit().putString(KEY_DEVICE_ID, deviceId).apply();
-        propertiesManager.setProperty(KEY_DEVICE_ID, deviceId);
-        propertiesManager.setProperty(KEY_SERIAL_NO, OSUtils.getSerialNo());
+        mPropertiesManager.setProperty(KEY_DEVICE_ID, deviceId);
+        mPropertiesManager.setProperty(KEY_SERIAL_NO, OsUtils.getSerialNo());
     }
 
     public String getDeviceId(@NonNull Context context) {
         SharedPreferences sps = context.getSharedPreferences(SPS_NAME_CELLA, Context.MODE_PRIVATE);
         String deviceId = sps.getString(KEY_DEVICE_ID, null);
-        String serialNo = OSUtils.getSerialNo();
+        String serialNo = OsUtils.getSerialNo();
         if (TextUtils.isEmpty(deviceId)) {
-            String oldSerialNo = propertiesManager.getProperty(KEY_SERIAL_NO);
-            if (oldSerialNo != null && oldSerialNo.equals(serialNo))
-                deviceId = propertiesManager.getProperty(KEY_DEVICE_ID);
+            String oldSerialNo = mPropertiesManager.getProperty(KEY_SERIAL_NO);
+            if (oldSerialNo != null && oldSerialNo.equals(serialNo)) {
+                deviceId = mPropertiesManager.getProperty(KEY_DEVICE_ID);
+            }
         }
-        if (TextUtils.isEmpty(deviceId)) return serialNo;
+        if (TextUtils.isEmpty(deviceId)) {
+            return serialNo;
+        }
         return deviceId;
     }
 }

@@ -22,6 +22,8 @@ import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.tencent.android.tpush.XGIOperateCallback;
 import com.tencent.android.tpush.XGPushBaseReceiver;
 import com.tencent.android.tpush.XGPushClickedResult;
@@ -31,31 +33,30 @@ import com.tencent.android.tpush.XGPushRegisterResult;
 import com.tencent.android.tpush.XGPushShowedResult;
 import com.tencent.android.tpush.XGPushTextMessage;
 
-import androidx.annotation.NonNull;
 
 /**
  * Created by w5e on 2018/10/8.
  */
-public final class XGManager {
+public final class XinGeManager {
     private static final boolean DEBUG = true;
-    private static final String TAG = XGManager.class.getSimpleName();
+    private static final String TAG = XinGeManager.class.getSimpleName();
 
     private Context mContext;
     private Listener mListener;
 
-    public XGManager(@NonNull Context context, @NonNull Listener l) {
+    public XinGeManager(@NonNull Context context, @NonNull Listener listener) {
         mContext = context.getApplicationContext();
-        mListener = l;
+        mListener = listener;
         XGPushConfig.enableDebug(mContext, DEBUG);
         XGPushConfig.setReportNotificationStatusEnable(mContext, false);
     }
 
     public void start() {
-        XGPushManager.registerPush(mContext, callback);
+        XGPushManager.registerPush(mContext, mCallback);
         if (DEBUG) {
-            if (debugMsgReceiver == null) {
-                debugMsgReceiver = new DebugMsgReceiver();
-                mContext.registerReceiver(debugMsgReceiver, new IntentFilter(ACTION_PUSH_DEBUG));
+            if (mDebugMsgReceiver == null) {
+                mDebugMsgReceiver = new DebugMsgReceiver();
+                mContext.registerReceiver(mDebugMsgReceiver, new IntentFilter(ACTION_PUSH_DEBUG));
             }
         }
     }
@@ -65,22 +66,22 @@ public final class XGManager {
             XGPushManager.unregisterPush(mContext);
 
             if (DEBUG) {
-                mContext.unregisterReceiver(debugMsgReceiver);
-                debugMsgReceiver = null;
+                mContext.unregisterReceiver(mDebugMsgReceiver);
+                mDebugMsgReceiver = null;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private XGIOperateCallback callback = new XGIOperateCallback() {
+    private XGIOperateCallback mCallback = new XGIOperateCallback() {
         @Override
-        public void onSuccess(Object o, int i) {
-            mListener.onStarted(o.toString());
+        public void onSuccess(Object obj, int var2) {
+            mListener.onStarted(obj.toString());
         }
 
         @Override
-        public void onFail(Object o, int i, String s) {
+        public void onFail(Object var1, int var2, String var3) {
             mListener.onStartFailed();
         }
     };
@@ -88,30 +89,35 @@ public final class XGManager {
     public static final class PushReceiver extends XGPushBaseReceiver {
 
         @Override
-        public void onRegisterResult(Context context, int i, XGPushRegisterResult xgPushRegisterResult) {
+        public void onRegisterResult(
+                Context context, int var2, XGPushRegisterResult xgPushRegisterResult) {
         }
 
         @Override
-        public void onUnregisterResult(Context context, int i) {
+        public void onUnregisterResult(Context context, int var2) {
         }
 
         @Override
-        public void onSetTagResult(Context context, int i, String s) {
+        public void onSetTagResult(Context context, int var2, String var3) {
         }
 
         @Override
-        public void onDeleteTagResult(Context context, int i, String s) {
+        public void onDeleteTagResult(Context context, int var2, String var3) {
         }
 
         @Override
         public void onTextMessage(Context context, XGPushTextMessage xgPushTextMessage) {
-            if (xgPushTextMessage == null) return;
-
-            if (TextUtils.isEmpty(xgPushTextMessage.getContent()))
+            if (xgPushTextMessage == null) {
                 return;
+            }
 
-            if (DEBUG)
+            if (TextUtils.isEmpty(xgPushTextMessage.getContent())) {
+                return;
+            }
+
+            if (DEBUG) {
                 Log.d(TAG, xgPushTextMessage.toString());
+            }
 
             Intent intent = new Intent(ACTION_PUSH_DEBUG);
             intent.putExtra(EXTRA_MSG, xgPushTextMessage.getContent());
@@ -119,11 +125,13 @@ public final class XGManager {
         }
 
         @Override
-        public void onNotifactionClickedResult(Context context, XGPushClickedResult xgPushClickedResult) {
+        public void onNotifactionClickedResult(
+                Context context, XGPushClickedResult xgPushClickedResult) {
         }
 
         @Override
-        public void onNotifactionShowedResult(Context context, XGPushShowedResult xgPushShowedResult) {
+        public void onNotifactionShowedResult(
+                Context context, XGPushShowedResult xgPushShowedResult) {
         }
     }
 
@@ -137,7 +145,7 @@ public final class XGManager {
 
     private static final String ACTION_PUSH_DEBUG = "ai.bind.client.control.action.PUSH_DEBUG";
     private static final String EXTRA_MSG = "EXTRA_MSG";
-    private DebugMsgReceiver debugMsgReceiver;
+    private DebugMsgReceiver mDebugMsgReceiver;
 
     public static void testOnMsg(@NonNull Context context, @NonNull String msg) {
         Intent intent = new Intent(ACTION_PUSH_DEBUG);
@@ -149,7 +157,9 @@ public final class XGManager {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action == null || !action.equals(ACTION_PUSH_DEBUG)) return;
+            if (action == null || !action.equals(ACTION_PUSH_DEBUG)) {
+                return;
+            }
             mListener.onMessage(intent.getStringExtra(EXTRA_MSG));
         }
     }

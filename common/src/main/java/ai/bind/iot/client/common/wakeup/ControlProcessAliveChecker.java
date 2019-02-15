@@ -22,8 +22,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import ai.bind.iot.client.common.Constants;
 import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.Constants;
 
 /**
  * Control进程保活实现
@@ -47,7 +48,7 @@ public final class ControlProcessAliveChecker extends ProcessAliveChecker {
     }
 
     @Override
-    protected void wakeup() {
+    public void wakeup() {
         Intent intent = new Intent();
         ComponentName componentName = new ComponentName(
                 Constants.CONTROL_SERVICE_PACKAGE_NAME,
@@ -58,6 +59,8 @@ public final class ControlProcessAliveChecker extends ProcessAliveChecker {
 
     @Override
     protected void onResponse(boolean isAlive) {
-        if (DEBUG) Log.d(TAG, "Control is alive:" + isAlive);
+        if (DEBUG) {
+            Log.d(TAG, "Control is alive:" + isAlive);
+        }
     }
 }

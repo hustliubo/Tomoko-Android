@@ -35,10 +35,11 @@ import androidx.annotation.NonNull;
 public abstract class HeartbeatDetector {
     private static final boolean DEBUG = false;
     private static final String TAG = HeartbeatDetector.class.getSimpleName();
-    private int beatCount = -1;
-    private long maxBeatInterval;
-    private Handler detectHandler;
-    private boolean stopOnDie;
+    private int mBeatCount = -1;
+    private long mMaxBeatInterval;
+    private Handler mDetectHandler;
+    private boolean mStopOnDie;
+    private static final int BEAT_INTERVAL_DEFAULT = 1000;
 
     protected HeartbeatDetector(long maxBeatInterval) {
         this(maxBeatInterval, true);
@@ -49,56 +50,71 @@ public abstract class HeartbeatDetector {
      * @param stopOnDie 是否在死亡时停止检测
      */
     protected HeartbeatDetector(long maxBeatInterval, boolean stopOnDie) {
-        if (maxBeatInterval <= 0) maxBeatInterval = 1000;
-        this.maxBeatInterval = maxBeatInterval;
-        this.stopOnDie = stopOnDie;
+        if (maxBeatInterval <= 0) {
+            maxBeatInterval = BEAT_INTERVAL_DEFAULT;
+        }
+        mMaxBeatInterval = maxBeatInterval;
+        mStopOnDie = stopOnDie;
         log("init:" + maxBeatInterval);
     }
 
-    private Runnable detectCallback = new Runnable() {
+    private Runnable mDetectCallback = new Runnable() {
         @Override
         public void run() {
-            if (beatCount <= 0) {
-                if (beatCount == 0)
+            if (mBeatCount <= 0) {
+                if (mBeatCount == 0) {
                     die(HeartbeatDetector.this);
+                }
                 log("die");
-                if (stopOnDie) stop();
-                else detect();
-            } else
+                if (mStopOnDie) {
+                    stop();
+                } else {
+                    detect();
+                }
+            } else {
                 detect();
+            }
         }
     };
 
     public void beat() {
-        beatCount += 1;
-        log("beat:" + beatCount);
+        mBeatCount += 1;
+        log("beat:" + mBeatCount);
     }
 
     protected abstract void die(HeartbeatDetector detector);
 
     public void start() {
-        if (detectHandler != null) return;
-        detectHandler = new Handler(Looper.getMainLooper());
+        if (mDetectHandler != null) {
+            return;
+        }
+        mDetectHandler = new Handler(Looper.getMainLooper());
         log("start");
         detect();
     }
 
     private void detect() {
-        if (detectHandler == null) return;
-        beatCount = 0;
-        detectHandler.postDelayed(detectCallback, maxBeatInterval);
+        if (mDetectHandler == null) {
+            return;
+        }
+        mBeatCount = 0;
+        mDetectHandler.postDelayed(mDetectCallback, mMaxBeatInterval);
         log("detect");
     }
 
     public void stop() {
-        if (detectHandler == null) return;
-        detectHandler.removeCallbacks(detectCallback);
-        detectHandler = null;
-        beatCount = -1;
+        if (mDetectHandler == null) {
+            return;
+        }
+        mDetectHandler.removeCallbacks(mDetectCallback);
+        mDetectHandler = null;
+        mBeatCount = -1;
         log("stop");
     }
 
     private void log(@NonNull String msg) {
-        if (DEBUG) Log.d(TAG, msg);
+        if (DEBUG) {
+            Log.d(TAG, msg);
+        }
     }
 }

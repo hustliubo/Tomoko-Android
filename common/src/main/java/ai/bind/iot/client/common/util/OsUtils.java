@@ -19,6 +19,9 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.text.TextUtils;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -29,7 +32,7 @@ import java.util.Enumeration;
 /**
  * Created by w5e.
  */
-public class OSUtils {
+public class OsUtils {
     @SuppressLint({"HardwareIds", "MissingPermission"})
     @SuppressWarnings("deprecation")
     private static String getSerial() {
@@ -40,13 +43,13 @@ public class OSUtils {
         }
     }
 
-    @SuppressLint("HardwareIds")
+    @SuppressLint({"HardwareIds", "PrivateApi"})
     public static String getSerialNo() {
         String serial = null;
-        try {//兼容旧应用
-            @SuppressLint("PrivateApi") Class<?> c = Class.forName("android.os.SystemProperties");
-            Method get = c.getMethod("get", String.class);
-            serial = (String) get.invoke(c, "ro.boot.serialno");
+        try { //兼容旧应用
+            Class<?> clazz = Class.forName("android.os.SystemProperties");
+            Method get = clazz.getMethod("get", String.class);
+            serial = (String) get.invoke(clazz, "ro.boot.serialno");
         } catch (Exception ignored) {
         }
         if (TextUtils.isEmpty(serial)) {
@@ -58,16 +61,17 @@ public class OSUtils {
         return serial;
     }
 
-    public static String getIpAddress(boolean onlyIPV4) {
+    public static String getIpAddress(boolean onlyIpV4) {
         try {
-            for (Enumeration<NetworkInterface> interfaceEnumeration
-                 = NetworkInterface.getNetworkInterfaces();
-                 interfaceEnumeration.hasMoreElements(); ) {
-                NetworkInterface networkInterface = interfaceEnumeration.nextElement();
-                for (Enumeration<InetAddress> addresses
-                     = networkInterface.getInetAddresses(); addresses.hasMoreElements(); ) {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
                     InetAddress inetAddress = addresses.nextElement();
-                    if (onlyIPV4 && !(inetAddress instanceof Inet4Address)) continue;
+                    if (onlyIpV4 && !(inetAddress instanceof Inet4Address)) {
+                        continue;
+                    }
                     if (!inetAddress.isLoopbackAddress()) {
                         return inetAddress.getHostAddress();
                     }
@@ -75,6 +79,16 @@ public class OSUtils {
             }
         } catch (SocketException ex) {
             ex.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String getMacAddress() {
+        String macPath = "sys/class/net/eth0/address";
+        try (BufferedReader reader = new BufferedReader(new FileReader(macPath))) {
+            return reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return null;
     }

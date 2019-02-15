@@ -28,65 +28,70 @@ import androidx.annotation.NonNull;
 public abstract class ProcessAliveChecker {
     protected static final boolean DEBUG = false;
     protected static final String TAG = "ProcessAliveChecker";
-    private boolean isChecking;
-    private boolean isAlive;
-    private boolean isTimeout;
-    private Handler mainThreadHandler = new Handler(Looper.getMainLooper());
+    private boolean mIsChecking;
+    private boolean mIsAlive;
+    private boolean mIsTimeout;
+    private Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
     protected Context mContext;
     private static final long RESPONSE_TIMEOUT_INTERVAL = 2000;
-    private WakeupBroadcastReceiver wakeupBroadcastReceiver;
+    private WakeupBroadcastReceiver mWakeupBroadcastReceiver;
+
     public ProcessAliveChecker(@NonNull Context context,
                                @NonNull String actionLocalRequest,
                                @NonNull String actionLocalResponse,
                                @NonNull String actionRemoteRequest,
                                @NonNull String actionRemoteResponse) {
         mContext = context.getApplicationContext();
-        wakeupBroadcastReceiver =
+        mWakeupBroadcastReceiver =
                 new WakeupBroadcastReceiver(actionLocalRequest, actionLocalResponse,
                         actionRemoteRequest, actionRemoteResponse) {
                     @Override
                     protected void onResponse() {
                         //如果未超时则说明存活
-                        ProcessAliveChecker.this.onResponse(!isTimeout);
-                        if (isTimeout) return;
-                        isAlive = true;
+                        ProcessAliveChecker.this.onResponse(!mIsTimeout);
+                        if (mIsTimeout) {
+                            return;
+                        }
+                        mIsAlive = true;
                     }
                 };
-        wakeupBroadcastReceiver.register(mContext);
+        mWakeupBroadcastReceiver.register(mContext);
     }
 
     protected abstract void onResponse(boolean isAlive);
 
-    private Runnable timeoutRunnable = new Runnable() {
+    private Runnable mTimeoutRunnable = new Runnable() {
         @Override
         public void run() {
             //检测结束
-            isChecking = false;
+            mIsChecking = false;
             //如果存活则不需要唤醒
-            if (isAlive) {
-                isAlive = false;
+            if (mIsAlive) {
+                mIsAlive = false;
                 return;
             }
-            isTimeout = true;
+            mIsTimeout = true;
             wakeup();
         }
     };
 
     public void check() {
-        if (isChecking) return;
-        isTimeout = false;
-        isAlive = false;
+        if (mIsChecking) {
+            return;
+        }
+        mIsTimeout = false;
+        mIsAlive = false;
         //检测开始
-        isChecking = true;
+        mIsChecking = true;
         //发送广播并等待响应
-        wakeupBroadcastReceiver.request(mContext);
-        mainThreadHandler.postDelayed(timeoutRunnable, RESPONSE_TIMEOUT_INTERVAL);
+        mWakeupBroadcastReceiver.request(mContext);
+        mMainThreadHandler.postDelayed(mTimeoutRunnable, RESPONSE_TIMEOUT_INTERVAL);
     }
 
     public void release() {
-        mainThreadHandler.removeCallbacks(timeoutRunnable);
+        mMainThreadHandler.removeCallbacks(mTimeoutRunnable);
         try {
-            mContext.unregisterReceiver(wakeupBroadcastReceiver);
+            mContext.unregisterReceiver(mWakeupBroadcastReceiver);
         } catch (Exception e) {
             e.printStackTrace();
         }

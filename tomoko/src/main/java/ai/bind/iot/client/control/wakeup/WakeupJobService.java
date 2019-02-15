@@ -24,10 +24,11 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import ai.bind.iot.client.common.util.JobServiceManager;
 import ai.bind.iot.client.common.wakeup.WakeupBroadcastReceiver;
 import ai.bind.iot.client.control.ControlService;
-import androidx.annotation.NonNull;
 
 /**
  * Created by w5e.
@@ -37,28 +38,31 @@ public class WakeupJobService extends JobService {
     public static final String TAG = WakeupBroadcastReceiver.TAG;
     public static final int JOB_ID_CHECKING = 1;
     private static final int MILLISECONDS_INTERVAL_CHECKING = 10000;
-    private JobServiceManager jobServiceManager;
+    private JobServiceManager mJobServiceManager;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "onStartCommand:" + WakeupJobService.class.getSimpleName());
+        }
         return START_STICKY;
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        jobServiceManager = new JobServiceManager(getApplicationContext());
-        if (DEBUG)
+        mJobServiceManager = new JobServiceManager(getApplicationContext());
+        if (DEBUG) {
             Log.d(TAG, "onCreate");
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "onDestroy");
+        }
     }
 
     @Override
@@ -66,11 +70,12 @@ public class WakeupJobService extends JobService {
         //当Control服务停止时唤醒
         ControlService.start(this);
         ClientProcessAliveChecker.onCheck(getApplicationContext());
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "onStartJob");
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             jobFinished(params, true);
-            scheduleJob(getApplicationContext(), jobServiceManager);
+            scheduleJob(getApplicationContext(), mJobServiceManager);
             return true;
         }
         return false;
@@ -78,8 +83,9 @@ public class WakeupJobService extends JobService {
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "onStopJob");
+        }
         return false;
     }
 
@@ -94,12 +100,15 @@ public class WakeupJobService extends JobService {
             builder.setMinimumLatency(MILLISECONDS_INTERVAL_CHECKING);
             builder.setOverrideDeadline(MILLISECONDS_INTERVAL_CHECKING);
             builder.setMinimumLatency(MILLISECONDS_INTERVAL_CHECKING);
-            builder.setBackoffCriteria(MILLISECONDS_INTERVAL_CHECKING, JobInfo.BACKOFF_POLICY_LINEAR);
+            builder.setBackoffCriteria(
+                    MILLISECONDS_INTERVAL_CHECKING, JobInfo.BACKOFF_POLICY_LINEAR);
         } else {
             builder.setPeriodic(MILLISECONDS_INTERVAL_CHECKING);
         }
         boolean result = jobServiceManager.scheduleJob(builder.build());
-        if (DEBUG) Log.d(TAG, "ScheduleJob:" + result);
+        if (DEBUG) {
+            Log.d(TAG, "ScheduleJob:" + result);
+        }
     }
 
 }

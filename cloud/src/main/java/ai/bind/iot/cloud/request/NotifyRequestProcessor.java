@@ -15,12 +15,14 @@
 
 package ai.bind.iot.cloud.request;
 
-import java.util.HashMap;
-
 import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.util.OsUtils;
 import me.w5e.sdk.network.HttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import java.util.HashMap;
 
 /**
  * 通知应用启动请求实现
@@ -59,6 +61,7 @@ public final class NotifyRequestProcessor extends HttpClient.RequestProcessor<St
         HashMap<String, String> params = new HashMap<>();
         params.put("device_id", mDeviceId);
         params.put("version", mVersionCode);
+        params.put("ip", OsUtils.getIpAddress(true));
         return params;
     }
 

@@ -17,32 +17,33 @@ package ai.bind.iot.client.control.update;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.Constants;
 import ai.bind.iot.client.common.util.AppManager;
 import ai.bind.iot.client.common.util.AsyncAutoRetry;
 import ai.bind.iot.cloud.RemoteService;
-import ai.bind.iot.xinge.XGManager;
-import androidx.annotation.NonNull;
-
-import static ai.bind.iot.client.common.Constants.CLIENT_PACKAGE_NAME;
+import ai.bind.iot.xinge.XinGeManager;
 
 /**
  * 推送实现：使用腾讯移动推送
  * Created by w5e.
  */
 public abstract class XinGePush extends AsyncAutoRetry.AsyncJob implements Pushable {
-    private XGManager xgManager;
-    private RemoteService remoteService;
+    private XinGeManager mXinGeManager;
+    private RemoteService mRemoteService;
 
-    protected XinGePush(@NonNull Context context) {
-        final long versionCode = AppManager.getVersionCode(context, CLIENT_PACKAGE_NAME);
-        XGManager.Listener xinGeListener = new XGManager.Listener() {
+    protected XinGePush(@NonNull final Context context) {
+        final long versionCode = AppManager.getVersionCode(context, Constants.CLIENT_PACKAGE_NAME);
+        XinGeManager.Listener xinGeListener = new XinGeManager.Listener() {
             @Override
             public void onStarted(String pushToken) {
                 XinGePush.this.onResult(true);
                 XinGePush.this.onStart(pushToken);
-                if (remoteService == null)
-                    remoteService = new RemoteService();
-                remoteService.bindPushDevice(pushToken, versionCode);
+                if (mRemoteService == null) {
+                    mRemoteService = new RemoteService();
+                }
+                mRemoteService.bindPushDevice(context, pushToken, versionCode);
             }
 
             @Override
@@ -55,29 +56,31 @@ public abstract class XinGePush extends AsyncAutoRetry.AsyncJob implements Pusha
                 XinGePush.this.onMessage(msg);
             }
         };
-        xgManager = new XGManager(context, xinGeListener);
+        mXinGeManager = new XinGeManager(context, xinGeListener);
     }
 
     @Override
     public void start() {
-        asyncAutoRetry.start();
+        mAsyncAutoRetry.start();
     }
 
     @Override
     public void stop() {
-        asyncAutoRetry.stop();
-        xgManager.stop();
-        if (remoteService != null)
-            remoteService.release();
+        mAsyncAutoRetry.stop();
+        mXinGeManager.stop();
+        if (mRemoteService != null) {
+            mRemoteService.release();
+        }
     }
 
     @Override
     protected void executeAsync() {
-        xgManager.start();
+        mXinGeManager.start();
     }
 
-    private AsyncAutoRetry asyncAutoRetry = new AsyncAutoRetry(
-            0, 3000, this) {
+    private static final int RETRY_DELAY = 3000;
+    private AsyncAutoRetry mAsyncAutoRetry = new AsyncAutoRetry(
+            0, RETRY_DELAY, this) {
         @Override
         protected void onFinish(boolean isSuccessful) {
         }

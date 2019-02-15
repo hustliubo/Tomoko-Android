@@ -26,45 +26,48 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.util.AppManager;
+import ai.bind.iot.client.control.ControlService;
+import me.w5e.sdk.network.HttpClient;
+import me.w5e.sdk.network.request.DownloadFileProcessor;
+
 import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import ai.bind.iot.client.common.util.AppManager;
-import ai.bind.iot.client.control.ControlService;
-import androidx.annotation.NonNull;
-import me.w5e.sdk.network.HttpClient;
-import me.w5e.sdk.network.request.DownloadFileProcessor;
-
 /**
  * 升级管理器
  * Created by w5e.
  */
+
 public class UpdateManager {
     private static final boolean DEBUG = ControlService.DEBUG;
     private static final String TAG = ControlService.TAG;
-    private HttpClient httpClient;
-    private File apk;
+    private HttpClient mHttpClient;
+    private File mApk;
     private Context mContext;
-    private PackageStateReceiver packageStateReceiver;
-    private EventListener eventListener;
+    private PackageStateReceiver mPackageStateReceiver;
+    private EventListener mEventListener;
     private static final int TASK_COUNT = 2;//安装前需要执行的任务数，安装前需要执行下载和卸载
-    private int currentTaskCount;//当前已经执行的任务数
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private Handler mainThreadHandler = new Handler(Looper.getMainLooper());
+    private int mCurrentTaskCount;//当前已经执行的任务数
+    private ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
+    private Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
 
-    public UpdateManager(@NonNull Context context, @NonNull EventListener l) {
+    public UpdateManager(@NonNull Context context, @NonNull EventListener listener) {
         mContext = context.getApplicationContext();
-        eventListener = l;
-        apk = new File(Environment.getExternalStorageDirectory(),
+        mEventListener = listener;
+        mApk = new File(Environment.getExternalStorageDirectory(),
                 "/cella/client/update/last.apk");
-        packageStateReceiver = new PackageStateReceiver();
+        mPackageStateReceiver = new PackageStateReceiver();
     }
 
     public void release() {
-        if (packageStateReceiver != null)
-            packageStateReceiver.unregister(mContext);
+        if (mPackageStateReceiver != null) {
+            mPackageStateReceiver.unregister(mContext);
+        }
     }
 
     /**
@@ -74,38 +77,39 @@ public class UpdateManager {
      * @param packageName 应用包名，安装前会先根据这个包名来卸载应用
      * @throws IllegalArgumentException url解析失败会抛出这个异常
      */
-    public void update(@NonNull String url, @NonNull String packageName) throws IllegalArgumentException {
-        if (httpClient == null) {
-            httpClient = new HttpClient() {
+    public void update(@NonNull String url, @NonNull String packageName)
+            throws IllegalArgumentException {
+        if (mHttpClient == null) {
+            mHttpClient = new HttpClient() {
                 @Override
                 public void authenticate() {
                 }
             };
         }
-        packageStateReceiver.register(mContext);
-        currentTaskCount = TASK_COUNT;
+        mPackageStateReceiver.register(mContext);
+        mCurrentTaskCount = TASK_COUNT;
         uninstallApp(packageName);
         deleteApk();
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOADING, null);
-        new ApkDownloadProcessor(httpClient, url, apk)
+        mEventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOADING, null);
+        new ApkDownloadProcessor(mHttpClient, url, mApk)
                 .executeAsync(new HttpClient.ResultListener<File>() {
                     @Override
                     public void onSuccess(File file) {
-                        eventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOAD_SUCCESS, null);
+                        mEventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOAD_SUCCESS, null);
                         installApp();
                     }
 
                     @Override
                     public void onFailure(String msg) {
                         log("下载失败");
-                        eventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOAD_FAILED, null);
+                        mEventListener.onStateChanged(EVENT_UPDATE_STATE_DOWNLOAD_FAILED, null);
                     }
                 });
     }
 
     private void deleteApk() {
-        if (apk != null && apk.exists()) {
-            if (apk.delete()) {
+        if (mApk != null && mApk.exists()) {
+            if (mApk.delete()) {
                 log("删除旧APK成功");
             } else {
                 log("删除旧APK失败");
@@ -116,22 +120,24 @@ public class UpdateManager {
     private void uninstallApp(@NonNull final String packageName) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 || !AppManager.isAppInstalled(mContext, packageName)) {
-            currentTaskCount -= 1;
+            mCurrentTaskCount -= 1;
             return;
         }
         //静默卸载
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_UNINSTALLING, null);
-        executorService.execute(new Runnable() {
+        mEventListener.onStateChanged(EVENT_UPDATE_STATE_UNINSTALLING, null);
+        mExecutorService.execute(new Runnable() {
             @Override
             public void run() {
                 final String errorMsg = AppManager.uninstall(packageName);
-                mainThreadHandler.post(new Runnable() {
+                mMainThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        if (errorMsg != null)
-                            eventListener.onStateChanged(EVENT_UPDATE_STATE_UNINSTALL_FAILED, errorMsg);
-                        else
+                        if (errorMsg != null) {
+                            mEventListener.onStateChanged(
+                                    EVENT_UPDATE_STATE_UNINSTALL_FAILED, errorMsg);
+                        } else {
                             doAfterUninstallSuccess();
+                        }
                     }
                 });
 
@@ -141,22 +147,24 @@ public class UpdateManager {
     }
 
     private synchronized void installApp() {
-        log("开始安装应用" + currentTaskCount + apk.exists());
-        if (currentTaskCount > 1) {
-            currentTaskCount -= 1;
+        log("开始安装应用" + mCurrentTaskCount + mApk.exists());
+        if (mCurrentTaskCount > 1) {
+            mCurrentTaskCount -= 1;
             return;
         }
         //静默安装
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_INSTALLING, null);
-        executorService.execute(new Runnable() {
+        mEventListener.onStateChanged(EVENT_UPDATE_STATE_INSTALLING, null);
+        mExecutorService.execute(new Runnable() {
             @Override
             public void run() {
-                final String errorMsg = AppManager.install(apk.getAbsolutePath());
-                mainThreadHandler.post(new Runnable() {
+                final String errorMsg = AppManager.install(mApk.getAbsolutePath());
+                mMainThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        if (errorMsg != null)
-                            eventListener.onStateChanged(EVENT_UPDATE_STATE_INSTALL_FAILED, errorMsg);
+                        if (errorMsg != null) {
+                            mEventListener.onStateChanged(
+                                    EVENT_UPDATE_STATE_INSTALL_FAILED, errorMsg);
+                        }
                     }
                 });
             }
@@ -166,16 +174,17 @@ public class UpdateManager {
     private void doAfterInstallSuccess(@NonNull String packageName) {
         //安装后删除文件
         deleteApk();
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_INSTALL_SUCCESS, null);
+        mEventListener.onStateChanged(EVENT_UPDATE_STATE_INSTALL_SUCCESS, null);
         //安装完成后移除监听
-        packageStateReceiver.unregister(mContext);
+        mPackageStateReceiver.unregister(mContext);
         String activityName = AppManager.startApp(mContext, packageName);
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_APP_STARING, packageName + " " + activityName);
+        mEventListener.onStateChanged(
+                EVENT_UPDATE_STATE_APP_STARING, packageName + " " + activityName);
     }
 
     private void doAfterUninstallSuccess() {
         //卸载后安装新应用
-        eventListener.onStateChanged(EVENT_UPDATE_STATE_UNINSTALL_SUCCESS, null);
+        mEventListener.onStateChanged(EVENT_UPDATE_STATE_UNINSTALL_SUCCESS, null);
         installApp();
     }
 
@@ -202,29 +211,36 @@ public class UpdateManager {
         @Override
         public void onReceive(Context context, Intent intent) {
             String actionName = intent.getAction();
-            if (actionName == null) return;
-
+            if (actionName == null) {
+                return;
+            }
             Uri data = intent.getData();
-            if (data == null) return;
+            if (data == null) {
+                return;
+            }
             String packageName = data.getSchemeSpecificPart();
 
-            if (packageName == null) return;
+            if (packageName == null) {
+                return;
+            }
             if (actionName.equals(Intent.ACTION_PACKAGE_ADDED)) {
                 long versionCode = AppManager.getVersionCode(context, packageName);
-                if (DEBUG)
+                if (DEBUG) {
                     Log.d(TAG, String.format(Locale.getDefault(),
                             "安装应用 包名:%s, 版本号:%d", packageName, versionCode));
+                }
                 doAfterInstallSuccess(packageName);
             }
-//            if (actionName.equals(Intent.ACTION_PACKAGE_REMOVED)) {
-//                doAfterUninstallSuccess();
-//            }
+            //if (actionName.equals(Intent.ACTION_PACKAGE_REMOVED)) {
+            //    doAfterUninstallSuccess();
+            //}
         }
     }
 
     private void log(String msg) {
-        if (ControlService.DEBUG)
+        if (ControlService.DEBUG) {
             Log.d(ControlService.TAG, msg);
+        }
     }
 
     /**

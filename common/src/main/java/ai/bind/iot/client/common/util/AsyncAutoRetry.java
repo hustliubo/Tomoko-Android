@@ -53,77 +53,93 @@ public abstract class AsyncAutoRetry {
     }
 
     public final void start() {
-        if (isRunning || isFinished) return;
-        isRunning = true;
+        if (mIsRunning || mIsFinished) {
+            return;
+        }
+        mIsRunning = true;
         log("Start");
         execute();
     }
 
     public final void stop() {
-        if (isFinished || !isRunning) return;
-        isFinished = true;
+        if (mIsFinished || !mIsRunning) {
+            return;
+        }
+        mIsFinished = true;
         log("Stop");
-        if (delayHandler != null && retryRunnable != null)
-            delayHandler.removeCallbacks(retryRunnable);
+        if (mDelayHandler != null && mRetryRunnable != null) {
+            mDelayHandler.removeCallbacks(mRetryRunnable);
+        }
     }
 
-    private boolean isFinished;
-    private boolean isRunning;
-    private int currentTimes;
+    private boolean mIsFinished;
+    private boolean mIsRunning;
+    private int mCurrentTimes;
 
     public final boolean reset() {
-        if (!isFinished) return false;
+        if (!mIsFinished) {
+            return false;
+        }
         log("Reset");
-        isFinished = false;
-        isRunning = false;
-        currentTimes = 0;
+        mIsFinished = false;
+        mIsRunning = false;
+        mCurrentTimes = 0;
         return true;
     }
 
     protected abstract void onFinish(boolean isSuccessful);
 
-    private AsyncJobResultListener asyncJobResultListener = new AsyncJobResultListener() {
+    private AsyncJobResultListener mAsyncJobResultListener = new AsyncJobResultListener() {
         @Override
         public void onResult(boolean isSuccessful) {
-            if (isFinished) return;
+            if (mIsFinished) {
+                return;
+            }
             try {
-                if (isSuccessful || (mNumber > 0 && currentTimes > mNumber)) {
+                if (isSuccessful || (mNumber > 0 && mCurrentTimes > mNumber)) {
                     log("Finished:" + isSuccessful);
-                    isFinished = true;
+                    mIsFinished = true;
                     AsyncAutoRetry.this.onFinish(isSuccessful);
-                } else
+                } else {
                     retry();
+                }
             } catch (Exception ignored) {
             }
         }
     };
 
     private void execute() {
-        if (isFinished) return;
-        currentTimes += 1;
-        mAsyncJob.execute(asyncJobResultListener);
+        if (mIsFinished) {
+            return;
+        }
+        mCurrentTimes += 1;
+        mAsyncJob.execute(mAsyncJobResultListener);
     }
 
-    private Handler delayHandler;
-    private Runnable retryRunnable;
+    private Handler mDelayHandler;
+    private Runnable mRetryRunnable;
 
     private void retry() {
-        log("Retry:" + currentTimes);
+        log("Retry:" + mCurrentTimes);
         if (mDelayMillis > 0) {
-            if (delayHandler == null) delayHandler = new Handler(Looper.getMainLooper());
-            if (retryRunnable == null) retryRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    execute();
-                }
-            };
-            delayHandler.postDelayed(retryRunnable, mDelayMillis);
-        } else {//不需要延迟执行
+            if (mDelayHandler == null) {
+                mDelayHandler = new Handler(Looper.getMainLooper());
+            }
+            if (mRetryRunnable == null) {
+                mRetryRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        execute();
+                    }
+                };
+            }
+            mDelayHandler.postDelayed(mRetryRunnable, mDelayMillis);
+        } else { //不需要延迟执行
             execute();
         }
     }
 
-    public static abstract class AsyncJob {
+    public abstract static class AsyncJob {
         AsyncJobResultListener mAsyncJobResultListener;
 
         private void execute(@NonNull AsyncJobResultListener asyncJobResultListener) {
@@ -149,6 +165,8 @@ public abstract class AsyncAutoRetry {
     }
 
     private void log(@NonNull String msg) {
-        if (DEBUG) Log.d(TAG, msg);
+        if (DEBUG) {
+            Log.d(TAG, msg);
+        }
     }
 }

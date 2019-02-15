@@ -31,17 +31,25 @@ public final class ClipboardUtils {
      */
     public static void setText(@NonNull Context context, @NonNull CharSequence text) {
         ClipboardManager manager = getClipboardManager(context);
-        if (manager == null) return;
+        if (manager == null) {
+            return;
+        }
         ClipData clipData = ClipData.newPlainText(null, text);
         manager.setPrimaryClip(clipData);
     }
 
-    /***/
+    /**
+     * 获取剪切板中的文本
+     */
     public static CharSequence getText(@NonNull Context context) {
         ClipboardManager manager = getClipboardManager(context);
-        if (manager == null) return null;
+        if (manager == null) {
+            return null;
+        }
         ClipData clipData = manager.getPrimaryClip();
-        if (clipData != null) return clipData.getItemAt(0).getText();
+        if (clipData != null) {
+            return clipData.getItemAt(0).getText();
+        }
         return null;
     }
 

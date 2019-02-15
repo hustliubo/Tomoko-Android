@@ -15,12 +15,14 @@
 
 package ai.bind.iot.cloud.request;
 
-import java.util.HashMap;
-
 import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.util.OsUtils;
 import me.w5e.sdk.network.HttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import java.util.HashMap;
 
 /**
  * 绑定推送设备请求实现
@@ -63,6 +65,9 @@ public final class BindRequestProcessor extends HttpClient.RequestProcessor<Stri
         params.put("device_id", mDeviceId);
         params.put("token", mPushToken);
         params.put("version", mVersionCode);
+        params.put("mac", OsUtils.getMacAddress());
+        params.put("serial", OsUtils.getSerialNo());
+
         return params;
     }
 

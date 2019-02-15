@@ -21,12 +21,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import ai.bind.iot.client.common.Constants;
 import ai.bind.iot.client.common.util.AppManager;
 import ai.bind.iot.client.common.util.JobServiceManager;
 import ai.bind.iot.client.common.wakeup.ProcessAliveChecker;
 import ai.bind.iot.client.control.ControlService;
-import androidx.annotation.NonNull;
 
 /**
  * 用于保持Client应用进程活跃
@@ -36,9 +37,9 @@ public final class ClientProcessAliveChecker extends ProcessAliveChecker {
     private static final boolean DEBUG = ControlService.DEBUG;
     private static final String TAG = ControlService.TAG;
     private static final String ACTION_ON_CHECK = "ai.bind.iot.client.LOCAL_ACTION_ON_CHECK";
-    private OnCheckBroadcastReceiver localOnCheckReceiver;
-    private JobServiceManager jobServiceManager;
-    private boolean isKeepAlive = true;
+    private OnCheckBroadcastReceiver mLocalOnCheckReceiver;
+    private JobServiceManager mJobServiceManager;
+    private boolean mIsKeepAlive = true;
 
     public ClientProcessAliveChecker(@NonNull Context context) {
         super(context,
@@ -46,41 +47,47 @@ public final class ClientProcessAliveChecker extends ProcessAliveChecker {
                 ACTION_CONTROL_RESPONSE,
                 ACTION_CLIENT_REQUEST,
                 ACTION_CLIENT_RESPONSE);
-        localOnCheckReceiver = new OnCheckBroadcastReceiver();
+        mLocalOnCheckReceiver = new OnCheckBroadcastReceiver();
         IntentFilter intentFilter = new IntentFilter(ACTION_ON_CHECK);
-        mContext.registerReceiver(localOnCheckReceiver, intentFilter);
-        jobServiceManager = new JobServiceManager(mContext);
+        mContext.registerReceiver(mLocalOnCheckReceiver, intentFilter);
+        mJobServiceManager = new JobServiceManager(mContext);
     }
 
     public void start() {
         setKeepAlive(true);
-        WakeupJobService.scheduleJob(mContext, jobServiceManager);
+        WakeupJobService.scheduleJob(mContext, mJobServiceManager);
     }
 
     public void stop() {
         setKeepAlive(false);
-        jobServiceManager.cancel(WakeupJobService.JOB_ID_CHECKING);
+        mJobServiceManager.cancel(WakeupJobService.JOB_ID_CHECKING);
     }
 
     @Override
     public void release() {
         super.release();
-        mContext.unregisterReceiver(localOnCheckReceiver);
+        mContext.unregisterReceiver(mLocalOnCheckReceiver);
     }
 
     private void setKeepAlive(boolean keepAlive) {
-        isKeepAlive = keepAlive;
+        mIsKeepAlive = keepAlive;
     }
 
     @Override
     protected void onResponse(boolean isAlive) {
-        if (DEBUG) Log.d(TAG, "Client is alive:" + isAlive);
+        if (DEBUG) {
+            Log.d(TAG, "Client is alive:" + isAlive);
+        }
     }
 
     @Override
     protected void wakeup() {
-        if (!isKeepAlive) return;
-        if (DEBUG) Log.d(TAG, "Wakeup");
+        if (!mIsKeepAlive) {
+            return;
+        }
+        if (DEBUG) {
+            Log.d(TAG, "Wakeup");
+        }
         AppManager.startApp(mContext, Constants.CLIENT_PACKAGE_NAME);
     }
 
@@ -91,10 +98,16 @@ public final class ClientProcessAliveChecker extends ProcessAliveChecker {
     private class OnCheckBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction() == null) return;
-            if (!intent.getAction().equals(ACTION_ON_CHECK)) return;
+            if (intent.getAction() == null) {
+                return;
+            }
+            if (!intent.getAction().equals(ACTION_ON_CHECK)) {
+                return;
+            }
             check();
-            if (DEBUG) Log.d(TAG, "Check");
+            if (DEBUG) {
+                Log.d(TAG, "Check");
+            }
         }
     }
 

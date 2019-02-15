@@ -26,7 +26,9 @@ import android.content.Intent;
 public final class BootBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || intent.getAction() == null) return;
+        if (intent == null || intent.getAction() == null) {
+            return;
+        }
         if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
             ControlService.start(context);
         }

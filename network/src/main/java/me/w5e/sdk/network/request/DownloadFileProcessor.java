@@ -1,15 +1,25 @@
+/*
+ * Copyright (c) 2019 CELLA
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.w5e.sdk.network.request;
 
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.SocketException;
-import java.util.HashMap;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import me.w5e.sdk.network.HttpClient;
 import me.w5e.sdk.network.progress.ProgressListener;
 import me.w5e.sdk.network.progress.ProgressOutputStream;
@@ -20,6 +30,12 @@ import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.SocketException;
+import java.util.HashMap;
+
 /**
  * Created by w5e on 2018/7/31.
  */
@@ -27,10 +43,10 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
     private String mRemotePath;
     private File mLocalFile;
     private ProgressListener mListener;
-    private boolean append;
-    private long writtenLength;
-    private Source source;
-    private BufferedSink sink;
+    private boolean mAppend;
+    private long mWrittenLength;
+    private Source mSource;
+    private BufferedSink mSink;
     public FileLengthListener fileLengthListener;
 
     /**
@@ -78,14 +94,16 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
     @Override
     protected HashMap<String, String> getHeaders() {
         if (mLocalFile.exists() && mLocalFile.canWrite()) {
-            writtenLength = mLocalFile.length();
+            mWrittenLength = mLocalFile.length();
         } else {
-            writtenLength = 0;
+            mWrittenLength = 0;
         }
-        append = writtenLength > 0;
-        if (!append) return null;
+        mAppend = mWrittenLength > 0;
+        if (!mAppend) {
+            return null;
+        }
         HashMap<String, String> headersMap = new HashMap<>();
-        headersMap.put("Range", "bytes=" + writtenLength + "-");
+        headersMap.put("Range", "bytes=" + mWrittenLength + "-");
         return headersMap;
     }
 
@@ -110,9 +128,15 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
             long fileLength = 0;
             try {
                 String contentLength = response.header("Content-Length");
-                if (contentLength != null) fileLength = Long.parseLong(contentLength);
-                if (append) fileLength += writtenLength;
-                if (fileLengthListener != null) fileLengthListener.onGetFileLength(fileLength);
+                if (contentLength != null) {
+                    fileLength = Long.parseLong(contentLength);
+                }
+                if (mAppend) {
+                    fileLength += mWrittenLength;
+                }
+                if (fileLengthListener != null) {
+                    fileLengthListener.onGetFileLength(fileLength);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e(HttpClient.TAG, "Get ContentLength Failed!");
@@ -123,17 +147,19 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
                 if (!parent.exists() && !parent.mkdirs()) {
                     Log.e(HttpClient.TAG, "Download File: Make dirs failed!");
                 }
-                ProgressOutputStream os = new ProgressOutputStream(
-                        new FileOutputStream(mLocalFile, append), fileLength, writtenLength, mListener);
-                sink = Okio.buffer(Okio.sink(os));
+                ProgressOutputStream os = new ProgressOutputStream(new FileOutputStream(
+                        mLocalFile, mAppend), fileLength, mWrittenLength, mListener);
+                mSink = Okio.buffer(Okio.sink(os));
                 if (response.body() != null) {
-                    source = response.body().source();
-                    while (!isCanceled() && source.read(sink.buffer(), 8192) != -1) {
-                        sink.flush();
+                    mSource = response.body().source();
+                    final int bufferSize = 8192;
+                    while (!isCanceled() && mSource.read(mSink.buffer(), bufferSize) != -1) {
+                        mSink.flush();
                     }
                     if (mLocalFile.exists() && mLocalFile.length() == fileLength) {
-                        if (HttpClient.DEBUG)
+                        if (HttpClient.DEBUG) {
                             Log.d(HttpClient.TAG, "Download Successfully");
+                        }
                         return new HttpClient.Result<>(mLocalFile);
                     }
                 }
@@ -150,16 +176,18 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
                 }
             } finally {
                 try {
-                    if (!isCanceled())
-                        Util.closeQuietly(source);
-                    Util.closeQuietly(sink);
+                    if (!isCanceled()) {
+                        Util.closeQuietly(mSource);
+                    }
+                    Util.closeQuietly(mSink);
                 } catch (Exception ignored) {
                 }
             }
         } else if (response.body() != null) {
             try {
-                if (HttpClient.DEBUG)
+                if (HttpClient.DEBUG) {
                     Log.e(HttpClient.TAG, "Download Failed: " + response.body().string());
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -182,8 +210,9 @@ public class DownloadFileProcessor extends HttpClient.RequestProcessor<File> {
             int index = 0;
             while (true) {
                 localFile = new File(dir, String.format(format, index));
-                if (!localFile.exists())
+                if (!localFile.exists()) {
                     return localFile;
+                }
                 index++;
             }
         }

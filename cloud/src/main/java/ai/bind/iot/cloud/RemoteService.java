@@ -15,12 +15,14 @@
 
 package ai.bind.iot.cloud;
 
+import android.content.Context;
 import android.util.Log;
 
-import ai.bind.iot.client.common.util.OSUtils;
+import androidx.annotation.NonNull;
+
+import ai.bind.iot.client.common.DeviceIdManager;
 import ai.bind.iot.cloud.request.BindRequestProcessor;
 import ai.bind.iot.cloud.request.NotifyRequestProcessor;
-import androidx.annotation.NonNull;
 import me.w5e.sdk.network.HttpClient;
 
 /**
@@ -31,23 +33,25 @@ public final class RemoteService {
     private static final boolean DEBUG = true;
     private static final String TAG = "RemoteService";
 
-    private HttpClient httpClient = new HttpClient() {
+    private DeviceIdManager mIdManager = new DeviceIdManager();
+
+    private HttpClient mHttpClient = new HttpClient() {
         @Override
         public void authenticate() {
         }
     };
 
-    private BindRequestProcessor bindRequestProcessor;
-    private NotifyRequestProcessor notifyRequestProcessor;
+    private BindRequestProcessor mBindRequestProcessor;
+    private NotifyRequestProcessor mNotifyRequestProcessor;
 
     public void release() {
-        if (bindRequestProcessor != null) {
-            bindRequestProcessor.cancel();
-            bindRequestProcessor = null;
+        if (mBindRequestProcessor != null) {
+            mBindRequestProcessor.cancel();
+            mBindRequestProcessor = null;
         }
-        if (notifyRequestProcessor != null) {
-            notifyRequestProcessor.cancel();
-            notifyRequestProcessor = null;
+        if (mNotifyRequestProcessor != null) {
+            mNotifyRequestProcessor.cancel();
+            mNotifyRequestProcessor = null;
         }
     }
 
@@ -57,21 +61,25 @@ public final class RemoteService {
      * @param pushToken   推送标识
      * @param versionCode 应用版本号
      */
-    public void bindPushDevice(@NonNull String pushToken, long versionCode) {
-        if (bindRequestProcessor == null)
-            bindRequestProcessor = new BindRequestProcessor(
-                    httpClient, OSUtils.getSerialNo(), pushToken, versionCode);
-        bindRequestProcessor.executeAsync(new HttpClient.ResultListener<String>() {
+    public void bindPushDevice(@NonNull Context context,
+                               @NonNull String pushToken, long versionCode) {
+        if (mBindRequestProcessor == null) {
+            mBindRequestProcessor = new BindRequestProcessor(
+                    mHttpClient, mIdManager.getDeviceId(context), pushToken, versionCode);
+        }
+        mBindRequestProcessor.executeAsync(new HttpClient.ResultListener<String>() {
             @Override
             public void onSuccess(String s) {
-                if (DEBUG)
+                if (DEBUG) {
                     Log.d(TAG, "绑定成功");
+                }
             }
 
             @Override
             public void onFailure(String msg) {
-                if (DEBUG)
+                if (DEBUG) {
                     Log.d(TAG, "绑定失败：" + msg);
+                }
             }
         });
     }
@@ -81,20 +89,24 @@ public final class RemoteService {
      *
      * @param versionCode 应用版本号
      */
-    public void notifyAppStartup(long versionCode) {
-        if (notifyRequestProcessor == null)
-            notifyRequestProcessor = new NotifyRequestProcessor(httpClient, OSUtils.getSerialNo(), versionCode);
-        notifyRequestProcessor.executeAsync(new HttpClient.ResultListener<String>() {
+    public void notifyAppStartup(@NonNull Context context, long versionCode) {
+        if (mNotifyRequestProcessor == null) {
+            mNotifyRequestProcessor = new NotifyRequestProcessor(
+                    mHttpClient, mIdManager.getDeviceId(context), versionCode);
+        }
+        mNotifyRequestProcessor.executeAsync(new HttpClient.ResultListener<String>() {
             @Override
             public void onSuccess(String s) {
-                if (DEBUG)
+                if (DEBUG) {
                     Log.d(TAG, "通知成功");
+                }
             }
 
             @Override
             public void onFailure(String msg) {
-                if (DEBUG)
+                if (DEBUG) {
                     Log.d(TAG, "通知失败：" + msg);
+                }
             }
         });
     }

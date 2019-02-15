@@ -18,6 +18,7 @@ package ai.bind.iot.client.control.update;
 /**
  * Created by w5e.
  */
+
 public interface Pushable {
     void start();
 

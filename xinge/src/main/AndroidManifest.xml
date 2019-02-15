@@ -28,7 +28,7 @@
             android:name="XG_V2_ACCESS_KEY"
             android:value="${XG_ACCESS_KEY}" />
 
-        <receiver android:name=".XGManager$PushReceiver"
+        <receiver android:name=".XinGeManager$PushReceiver"
             android:exported="true"
             tools:ignore="ExportedReceiver">
             <intent-filter>

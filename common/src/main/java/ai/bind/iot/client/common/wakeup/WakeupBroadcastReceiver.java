@@ -30,30 +30,36 @@ public abstract class WakeupBroadcastReceiver extends BroadcastReceiver {
     private static final boolean DEBUG = true;
     public static final String TAG = "wakeup";
 
-    protected String actionLocalRequest;
-    protected String actionLocalResponse;
-    protected String actionRemoteRequest;
-    protected String actionRemoteResponse;
+    protected String mActionLocalRequest;
+    protected String mActionLocalResponse;
+    protected String mActionRemoteRequest;
+    protected String mActionRemoteResponse;
 
     public WakeupBroadcastReceiver(
             @NonNull String actionLocalRequest,
             @NonNull String actionLocalResponse,
             @NonNull String actionRemoteRequest,
             @NonNull String actionRemoteResponse) {
-        this.actionLocalRequest = actionLocalRequest;
-        this.actionLocalResponse = actionLocalResponse;
-        this.actionRemoteRequest = actionRemoteRequest;
-        this.actionRemoteResponse = actionRemoteResponse;
+        mActionLocalRequest = actionLocalRequest;
+        mActionLocalResponse = actionLocalResponse;
+        mActionRemoteRequest = actionRemoteRequest;
+        mActionRemoteResponse = actionRemoteResponse;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (DEBUG) Log.d(TAG, intent.toString());
-        if (intent.getAction() == null) return;
-        if (intent.getAction().equals(actionLocalRequest))
+        if (DEBUG) {
+            Log.d(TAG, intent.toString());
+        }
+        if (intent.getAction() == null) {
+            return;
+        }
+        if (intent.getAction().equals(mActionLocalRequest)) {
             response(context);
-        if (intent.getAction().equals(actionLocalResponse))
+        }
+        if (intent.getAction().equals(mActionLocalResponse)) {
             onResponse();
+        }
     }
 
     protected abstract void onResponse();
@@ -62,16 +68,16 @@ public abstract class WakeupBroadcastReceiver extends BroadcastReceiver {
      * 注册等待响应
      */
     public void register(@NonNull Context context) {
-        IntentFilter intentFilter = new IntentFilter(actionLocalRequest);
-        intentFilter.addAction(actionLocalResponse);
+        IntentFilter intentFilter = new IntentFilter(mActionLocalRequest);
+        intentFilter.addAction(mActionLocalResponse);
         context.registerReceiver(this, intentFilter);
     }
 
     public void request(@NonNull Context context) {
-        context.sendBroadcast(new Intent(actionRemoteRequest));
+        context.sendBroadcast(new Intent(mActionRemoteRequest));
     }
 
     private void response(@NonNull Context context) {
-        context.sendBroadcast(new Intent(actionRemoteResponse));
+        context.sendBroadcast(new Intent(mActionRemoteResponse));
     }
 }

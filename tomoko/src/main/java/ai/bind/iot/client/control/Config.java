@@ -25,28 +25,28 @@ import androidx.annotation.NonNull;
  * Created by w5e.
  */
 public final class Config {
-    private SharedPreferences sps;
+    private SharedPreferences mSps;
     private static final String SPS_NAME = "ai.bind.iot.client.control.config";
     private static final String KEY_KEEP_ALIVE = "KEY_KEEP_ALIVE";
     private static final String KEY_REBOOT_ENABLED = "KEY_REBOOT_ENABLED";
 
     public Config(@NonNull Context context) {
-        sps = context.getSharedPreferences(SPS_NAME, Context.MODE_PRIVATE);
+        mSps = context.getSharedPreferences(SPS_NAME, Context.MODE_PRIVATE);
     }
 
     void setKeepAlive(boolean keepAlive) {
-        sps.edit().putBoolean(KEY_KEEP_ALIVE, keepAlive).apply();
+        mSps.edit().putBoolean(KEY_KEEP_ALIVE, keepAlive).apply();
     }
 
     void setRebootEnabled(boolean rebootEnabled) {
-        sps.edit().putBoolean(KEY_REBOOT_ENABLED, rebootEnabled).apply();
+        mSps.edit().putBoolean(KEY_REBOOT_ENABLED, rebootEnabled).apply();
     }
 
     public boolean isKeepAlive() {
-        return sps.getBoolean(KEY_KEEP_ALIVE, true);
+        return mSps.getBoolean(KEY_KEEP_ALIVE, true);
     }
 
     public boolean isRebootEnabled() {
-        return sps.getBoolean(KEY_REBOOT_ENABLED, true);
+        return mSps.getBoolean(KEY_REBOOT_ENABLED, true);
     }
 }

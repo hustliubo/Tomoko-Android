@@ -32,45 +32,46 @@ package ai.bind.iot.client.common.util;
  */
 public class Delayer {
     private long mDelayDuration;
-    private long lastTimestamp;
-    private boolean invalid;
+    private long mLastTimestamp;
+    private boolean mInvalid;
 
     public Delayer(long delayDuration) {
         mDelayDuration = delayDuration;
     }
 
     private long getTimestamp() {
-//        return SystemClock.elapsedRealtime();
         return System.currentTimeMillis();
     }
 
     public void start() {
-        if (isStarted()) return;
-        lastTimestamp = getTimestamp();
+        if (isStarted()) {
+            return;
+        }
+        mLastTimestamp = getTimestamp();
     }
 
     public boolean isStarted() {
-        return lastTimestamp > 0;
+        return mLastTimestamp > 0;
     }
 
     public void setInvalid() {
-        this.invalid = true;
+        this.mInvalid = true;
     }
 
     /**
      * 获取剩余延迟时长（毫秒），为0则表示已经过了延迟时长。否返回还要等待的毫秒数
      */
     public long getRemainingDuration() {
-        if (invalid || !isStarted()) {
+        if (mInvalid || !isStarted()) {
             return -1;
         }
         long currentTimestamp = getTimestamp();
 
-        long passedDuration = currentTimestamp - lastTimestamp;
+        long passedDuration = currentTimestamp - mLastTimestamp;
         if (passedDuration < mDelayDuration) {
             return mDelayDuration - passedDuration;
         } else {
-            lastTimestamp = currentTimestamp - (passedDuration % mDelayDuration);
+            mLastTimestamp = currentTimestamp - (passedDuration % mDelayDuration);
             return 0;
         }
     }
@@ -84,7 +85,7 @@ public class Delayer {
     }
 
     public boolean isInvalid() {
-        return invalid;
+        return mInvalid;
     }
 
 }

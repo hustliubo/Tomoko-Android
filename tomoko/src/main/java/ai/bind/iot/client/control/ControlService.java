@@ -29,7 +29,8 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.Locale;
+import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
 
 import ai.bind.iot.client.common.Constants;
 import ai.bind.iot.client.common.util.AppManager;
@@ -37,8 +38,8 @@ import ai.bind.iot.client.control.update.Pushable;
 import ai.bind.iot.client.control.update.UpdateManager;
 import ai.bind.iot.client.control.update.XinGePush;
 import ai.bind.iot.client.control.wakeup.ClientProcessAliveChecker;
-import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
+
+import java.util.Locale;
 
 /**
  * 主服务
@@ -47,64 +48,71 @@ import androidx.core.app.NotificationCompat;
 public class ControlService extends Service {
     public static final boolean DEBUG = true;
     public static final String TAG = "Control";
-    private Config config;
+    private Config mConfig;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        config = new Config(this);
-        isRebootEnabled = config.isRebootEnabled();
-        if (BuildConfig.PUSH_UPDATE_ENABLED)
+        mConfig = new Config(this);
+        mIsRebootEnabled = mConfig.isRebootEnabled();
+        if (BuildConfig.PUSH_UPDATE_ENABLED) {
             initPushUpdate();
+        }
         initProcessAliveKeeper();
         startForeground(NOTIFICATION_ID, createNotification());
+        AppManager.runCommand("settings put global ntp_server ntp1.aliyun.com");
     }
 
     public static void start(@NonNull Context context) {
         Intent intent = new Intent(context, ControlService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
-        else
+        } else {
             context.startService(intent);
+        }
     }
 
     private static final String ACTION_APP_RESTART = "1";
     private static final String ACTION_SYS_REBOOT = "2";
 
-    private ControlBroadcastReceiver controlBroadcastReceiver;
-    private ClientProcessAliveChecker processAliveChecker;
-    private boolean isRebootEnabled = true;
+    private ControlBroadcastReceiver mControlBroadcastReceiver;
+    private ClientProcessAliveChecker mProcessAliveChecker;
+    private boolean mIsRebootEnabled = true;
 
     private void initProcessAliveKeeper() {
-        processAliveChecker = new ClientProcessAliveChecker(getApplicationContext());
-        if (controlBroadcastReceiver == null)
-            controlBroadcastReceiver = new ControlBroadcastReceiver();
+        mProcessAliveChecker = new ClientProcessAliveChecker(getApplicationContext());
+        if (mControlBroadcastReceiver == null) {
+            mControlBroadcastReceiver = new ControlBroadcastReceiver();
+        }
         IntentFilter intentFilter = new IntentFilter(Constants.INTENT_ACTION_REBOOT);
-        registerReceiver(controlBroadcastReceiver, intentFilter);
-        if (config.isKeepAlive())
-            processAliveChecker.start();
+        registerReceiver(mControlBroadcastReceiver, intentFilter);
+        if (mConfig.isKeepAlive()) {
+            mProcessAliveChecker.start();
+        }
     }
 
     private void releaseProcessAliveKeeper() {
-        if (processAliveChecker != null)
-            processAliveChecker.release();
-        if (controlBroadcastReceiver != null)
-            unregisterReceiver(controlBroadcastReceiver);
+        if (mProcessAliveChecker != null) {
+            mProcessAliveChecker.release();
+        }
+        if (mControlBroadcastReceiver != null) {
+            unregisterReceiver(mControlBroadcastReceiver);
+        }
     }
 
-    private Pushable pushable;
-    private UpdateManager updateManager;
+    private Pushable mPushable;
+    private UpdateManager mUpdateManager;
     private String mPushToken;
 
     private void initPushUpdate() {
-        updateManager = new UpdateManager(getApplicationContext(), new UpdateManager.EventListener() {
+        mUpdateManager = new UpdateManager(this, new UpdateManager.EventListener() {
             @Override
             public void onStateChanged(int state, String msg) {
                 onUpdateEvent(getStateString(state) + (msg == null ? "" : ":" + msg));
             }
         });
 
-        pushable = new XinGePush(this) {
+        mPushable = new XinGePush(this) {
             @Override
             public void onStart(String pushToken) {
                 log("onStarted:" + pushToken);
@@ -131,7 +139,9 @@ public class ControlService extends Service {
 
             @Override
             public void onMessage(String msg) {
-                if (msg == null) return;
+                if (msg == null) {
+                    return;
+                }
                 onEvent(EVENT_TYPE_PUSH_MSG, msg);
                 if (msg.startsWith("http")) {
                     String[] data = msg.split("\\|");
@@ -142,7 +152,7 @@ public class ControlService extends Service {
                     if (versionCode > AppManager.getVersionCode(
                             getApplicationContext(), packageName)) {
                         try {
-                            updateManager.update(url, packageName);
+                            mUpdateManager.update(url, packageName);
                         } catch (Exception e) {
                             e.printStackTrace();
                             onUpdateEvent(String.format(
@@ -169,22 +179,25 @@ public class ControlService extends Service {
                 }
             }
         };
-        pushable.start();
+        mPushable.start();
     }
 
     private void releasePushUpdate() {
-        if (pushable != null)
-            pushable.stop();
-        if (updateManager != null)
-            updateManager.release();
+        if (mPushable != null) {
+            mPushable.stop();
+        }
+        if (mUpdateManager != null) {
+            mUpdateManager.release();
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
 
-        if (BuildConfig.PUSH_UPDATE_ENABLED)
+        if (BuildConfig.PUSH_UPDATE_ENABLED) {
             releasePushUpdate();
+        }
 
         releaseProcessAliveKeeper();
         stopForeground(true);
@@ -193,8 +206,9 @@ public class ControlService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION_ID, createNotification());
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "onStartCommand:" + ControlService.class.getSimpleName());
+        }
         return START_STICKY;
     }
 
@@ -225,10 +239,14 @@ public class ControlService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action == null) return;
+            if (action == null) {
+                return;
+            }
             if (action.equals(Constants.INTENT_ACTION_REBOOT)) {
-                Toast.makeText(context, "REBOOT:" + isRebootEnabled, Toast.LENGTH_LONG).show();
-                if (isRebootEnabled) reboot();
+                Toast.makeText(context, "REBOOT:" + mIsRebootEnabled, Toast.LENGTH_LONG).show();
+                if (mIsRebootEnabled) {
+                    reboot();
+                }
             }
         }
     }
@@ -243,8 +261,9 @@ public class ControlService extends Service {
     }
 
     private void log(String msg) {
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, msg);
+        }
     }
 
     private void onUpdateEvent(@NonNull String data) {
@@ -278,16 +297,16 @@ public class ControlService extends Service {
 
         public void setKeepAliveEnabled(boolean enabled) {
             if (enabled) {
-                processAliveChecker.start();
+                mProcessAliveChecker.start();
             } else {
-                processAliveChecker.stop();
+                mProcessAliveChecker.stop();
             }
-            config.setKeepAlive(enabled);
+            mConfig.setKeepAlive(enabled);
         }
 
         public void setRebootEnabled(boolean enabled) {
-            isRebootEnabled = enabled;
-            config.setRebootEnabled(isRebootEnabled);
+            mIsRebootEnabled = enabled;
+            mConfig.setRebootEnabled(mIsRebootEnabled);
         }
     }
 
@@ -326,6 +345,9 @@ public class ControlService extends Service {
 
             case UpdateManager.EVENT_UPDATE_STATE_APP_STARING:
                 resId = R.string.event_update_state_app_staring;
+                break;
+            default:
+                break;
         }
         return getString(resId);
     }
@@ -333,15 +355,15 @@ public class ControlService extends Service {
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "AI_BIND_IOT_TOMOKO";
     private static final String CHANNEL_NAME = "TOMOKO";
-    private NotificationChannel channel;
+    private NotificationChannel mChannel;
 
     private Notification createNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (channel == null) {
-                channel = new NotificationChannel(CHANNEL_ID,
+            if (mChannel == null) {
+                mChannel = new NotificationChannel(CHANNEL_ID,
                         CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
-                channel.setSound(null, null);
-                getNotificationManager(this).createNotificationChannel(channel);
+                mChannel.setSound(null, null);
+                getNotificationManager(this).createNotificationChannel(mChannel);
             }
         }
         NotificationCompat.Builder builder =
@@ -355,7 +377,9 @@ public class ControlService extends Service {
     }
 
     private static NotificationManager getNotificationManager(Context context) {
-        if (context == null) return null;
+        if (context == null) {
+            return null;
+        }
         return (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     }
 }

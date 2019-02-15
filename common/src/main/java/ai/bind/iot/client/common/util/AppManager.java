@@ -26,6 +26,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -33,9 +36,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.List;
-
-import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
 
 /**
  * Created by w5e.
@@ -77,7 +77,9 @@ public class AppManager {
     }
 
     public static ResolveInfo getInstalledAppInfo(Context context, String packageName) {
-        if (context == null || packageName == null) return null;
+        if (context == null || packageName == null) {
+            return null;
+        }
         PackageManager packageManager = context.getPackageManager();
         PackageInfo pi;
         try {
@@ -104,7 +106,9 @@ public class AppManager {
         //http://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed
         Uri uri;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (authority == null) return false;
+            if (authority == null) {
+                return false;
+            }
             uri = FileProvider.getUriForFile(context, authority, file);
         } else {
             uri = Uri.fromFile(file);
@@ -122,7 +126,9 @@ public class AppManager {
      * <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES"/>
      */
     public static void uninstallApp(Context context, String packageName) {
-        if (context == null || packageName == null) return;
+        if (context == null || packageName == null) {
+            return;
+        }
         Uri packageUri = Uri.parse("package:" + packageName);
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_DELETE);
@@ -134,13 +140,17 @@ public class AppManager {
 
     /**启动成功会返回Activity的名字*/
     public static String startApp(Context context, String packageName) {
-        if (context == null || packageName == null) return null;
+        if (context == null || packageName == null) {
+            return null;
+        }
         ResolveInfo ri = getInstalledAppInfo(context, packageName);
         return startApp(context, packageName, ri);
     }
 
     public static String startApp(Context context, String packageName, ResolveInfo ri) {
-        if (context == null || packageName == null || ri == null) return null;
+        if (context == null || packageName == null || ri == null) {
+            return null;
+        }
         String activityName = ri.activityInfo.name;
 
         Intent intent = new Intent(Intent.ACTION_MAIN);
@@ -161,31 +171,31 @@ public class AppManager {
      * @return 错误信息
      */
     public static String install(String apkPath) {
-//        String[] args = {"pm", "install", "-r", apkPath};
-//        return runCommand(args);
+        //String[] args = {"pm", "install", "-r", apkPath};
+        //return runCommand(args);
         return runCommand("LD_LIBRARY_PATH=/vendor/lib*:/system/lib* pm install -r " + apkPath);
     }
 
     public static String uninstall(String packageName) {
-//        String[] args = {"pm", "uninstall", packageName};
-//        return runCommand(args);
+        //String[] args = {"pm", "uninstall", packageName};
+        //return runCommand(args);
         return runCommand("LD_LIBRARY_PATH=/vendor/lib*:/system/lib* pm uninstall " + packageName);
     }
 
-//    private static String runCommand(String... command) {
-//        ProcessBuilder processBuilder = new ProcessBuilder(command);
-//        Process process = null;
-//        try {
-//            process = processBuilder.start();
-//            return getCommandResult(process);
-//        } catch (Exception e) {
-//            return e.getLocalizedMessage();
-//        } finally {
-//            if (process != null) {
-//                process.destroy();
-//            }
-//        }
-//    }
+    //private static String runCommand(String... command) {
+    //    ProcessBuilder processBuilder = new ProcessBuilder(command);
+    //    Process process = null;
+    //    try {
+    //        process = processBuilder.start();
+    //        return getCommandResult(process);
+    //    } catch (Exception e) {
+    //        return e.getLocalizedMessage();
+    //    } finally {
+    //        if (process != null) {
+    //            process.destroy();
+    //        }
+    //    }
+    //}
 
     public static String runCommand(String command) {
         Process process = null;
@@ -206,11 +216,13 @@ public class AppManager {
             return e.getLocalizedMessage();
         } finally {
             try {
-                if (cmdOutputStream != null)
+                if (cmdOutputStream != null) {
                     cmdOutputStream.close();
-                if (process != null)
+                }
+                if (process != null) {
                     process.destroy();
-            } catch (Exception ignore) {
+                }
+            } catch (Exception ignored) {
             }
         }
     }
@@ -235,14 +247,16 @@ public class AppManager {
             try (BufferedReader errorMsgReader = new BufferedReader(
                     new InputStreamReader(process.getErrorStream()))) {
                 return read(errorMsgReader);
-            } catch (Exception ignore) {
+            } catch (Exception ignored) {
             }
         }
         return "UNKNOWN ERROR!";
     }
 
     private static String read(BufferedReader reader) throws IOException {
-        if (reader == null) return null;
+        if (reader == null) {
+            return null;
+        }
         StringBuilder stringBuilder = new StringBuilder();
         String line;
         // 读取命令的执行结果
